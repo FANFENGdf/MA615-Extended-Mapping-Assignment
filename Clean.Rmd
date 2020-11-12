@@ -1,0 +1,35 @@
+---
+title: "Mapping_extend"
+author: "Fan Feng"
+date: "2020/11/11"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load("tidyverse","magrittr","lubridate")
+```
+
+# import the dataset
+```{r}
+fema <- read.csv("PublicAssistanceFundedProjectsDetails.csv")
+colnames(fema)
+```
+
+# clean the dataset
+```{r}
+fema %<>% 
+  select(-damageCategoryCode, -hash, -lastRefresh, -id) %<>%
+  filter(incidentType == 'Hurricane') %<>%
+  separate(declarationDate, c('date', 'time'), sep = "T")
+
+fema$date <- as.Date(fema$date,format="%Y-%m-%d")
+fema %<>%
+  filter(year(date) %in% c(2009:2018)) %<>%
+  select(-time,-incidentType)
+```
+
+```{r}
+write.csv(fema, "clean_data.csv")
+```
+
