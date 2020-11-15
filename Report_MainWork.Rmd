@@ -1,0 +1,334 @@
+---
+title: "Extended Mapping Assignment"
+author: "Fan Feng"
+date: "2020/11/11"
+output: pdf_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+                      echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load("tidyverse",
+               "magrittr",
+               "hurricaneexposuredata",
+               "drat",
+               "maps",
+               "lubridate",
+               "kableExtra")
+```
+# 1. Background 
+
+Main Task:
+
+Data Description:
+
+# 2. Data Cleaning
+
+## Import the dataset & Select columns
+```{r}
+fema = read.csv("clean_data.csv")
+```
+
+```{r}
+fema$state <- tolower(fema$state)
+fema$county <- tolower(fema$county)
+fema %<>% select(disasterNumber,date,damageCategory,projectSize,
+                 state,county, projectAmount,federalShareObligated)
+names(fema) <- c("hurricane_id","date","damage_category","project_size",
+                 "region", "subregion", "project_amount", "federal_share")
+```
+
+## Name each hurricane
+
+Based on the information from the FEMA website, we 
+```{r}
+#year18<-fema %>% filter(year(date)==2018)
+#year18$hurricane_id %>% unique()
+#2009
+IDA <- fema %>% filter(hurricane_id == 1866) %>%
+  mutate(hurr_name = 'IDA')
+#2010
+EARL <- fema %>% filter(hurricane_id %in% c(1939,3314,3315))%>%
+  mutate(hurr_name = 'EARL')
+ALEX <- fema %>% filter(hurricane_id == 1931) %>%
+  mutate(hurr_name = 'ALEX')
+#2011
+IRENE <- fema %>% filter(year(date) == 2011) %>% 
+  mutate(hurr_name = 'IRENE')
+#2012-2013
+SANDY <- fema %>% filter((year(date) == 2012) | (year(date) == 2013)) %>%
+  mutate(hurr_name = 'SANDY')
+#2016
+MATTHEW <- fema %>% 
+  filter(hurricane_id %in% c(4291,4286,4285,4283,4284)) %>%
+  mutate(hurr_name = 'MATTHEW')
+HERMINE <- fema %>% filter(hurricane_id == 4280) %>% 
+  mutate(hurr_name = 'HERMINE')
+#2017
+HARVEY <- fema %>% filter(hurricane_id %in% c(4332,4345)) %>% 
+  mutate(hurr_name = 'HARVEY')
+NATE <- fema %>% filter(hurricane_id %in% c(3392,3395,4349,4350)) %>% 
+  mutate(hurr_name = 'NATE')
+IRMA <- fema %>%  
+  filter(hurricane_id %in% c(3384,3389,4336,4337,4338,4346,4335,4341)) %>%
+  mutate(hurr_name = 'IRMA')
+MARIA <- fema %>% filter(hurricane_id %in% c(4340,4339)) %>% 
+  mutate(hurr_name = 'MARIA')
+#2018
+MICHAEL <- fema %>% filter(hurricane_id %in% c(4411,4406,4400,4399)) %>%
+  mutate(hurr_name = 'MICHAEL')
+FLORENCE <- fema %>% filter(hurricane_id %in% c(4393,4394,4401)) %>%
+  mutate(hurr_name = 'FLORENCE')
+LANE_hawaii <- fema %>% filter(hurricane_id == 4395) %>%
+  mutate(hurr_name = 'LANE')
+GITA <- fema %>% filter(hurricane_id == 4357) %>%
+  mutate(hurr_name = 'GITA')
+```
+
+## Combine all the hurricanes 
+```{r}
+fema_new <- do.call("rbind", list(IDA,EARL,ALEX,IRENE,SANDY,MATTHEW,
+                                  HERMINE,HARVEY,NATE,IRMA,MARIA,MICHAEL,
+                                  FLORENCE,LANE_hawaii,GITA))
+```
+
+# 3. Exploratory Data Analysis
+
+## 3.1 Temporal Aspect
+
+First, we explore our data from the aspect of time. We draw multiple plots based on the data of different years to reveal various information.
+
+### The number of major disaster declaration each year
+```{r, echo = FALSE}
+year_count <- fema_new %>%
+  mutate(Year = year(date)) %>% 
+  group_by(Year) %>%
+  tally()
+```
+
+```{r, echo = FALSE}
+ggplot(year_count,
+       aes(x = as.factor(Year), y = n, fill = as.factor(Year))) +
+  geom_bar(stat = 'identity') +
+  scale_fill_hue(c = 40) +
+  ggtitle("The Number of Major Hurricane Delcaration Each Year") +
+  xlab("Year") + ylab("The Count of Delcaration") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+ggplot(data = year_count,
+       mapping = aes(x = as.factor(Year), y = n, group = 1)) + 
+  geom_line() + geom_point() + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Change of Declaration's Count over Years") +
+  xlab("Year") + ylab("The Count of Hurricane Declarations") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+```
+
+### The Number of States Suffered From Hurricane Each Year
+```{r}
+year_state <- fema_new %>%
+  mutate(Year = year(date)) %>%
+  group_by(Year,region) %>%
+  tally()
+```
+
+```{r}
+ggplot(year_state) +
+  geom_bar(aes(x = as.factor(Year),fill = as.factor(Year))) +
+  scale_fill_hue(c = 40) +
+  ggtitle("The Number of States Suffered From Hurricane Each Year") +
+  xlab("Year") + ylab("The Count of States Suffered") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+  #coord_flip()
+```
+
+### The Total Project Amount Each Year
+```{r, include= FALSE}
+year_amount <- fema_new %>% 
+  mutate(Year = year(date)) %>%
+  group_by(Year) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+
+severe_year = year_amount[rev(order(year_amount$sum))[1:5],]
+peace_year = year_amount[rev(order(year_amount$sum))[6:8],]
+```
+
+```{r}
+ggplot(data = year_amount,
+       mapping = aes(x = as.factor(Year), y = sum, 
+                     fill = as.factor(Year))) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Total Project Amount Each Year") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+```
+
+```{r}
+ggplot(data = severe_year,
+       mapping = aes(x = as.factor(Year), y = sum, 
+                     fill = as.factor(Year))) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Total Project Amount - Severe Years") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+```
+
+```{r}
+ggplot(data = peace_year,
+       mapping = aes(x = as.factor(Year), y = sum, 
+                     fill = as.factor(Year))) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Total Project Amount - Relatively Peaceful Years") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+```
+
+```{r}
+ggplot(data = year_amount,
+       mapping = aes(x = as.factor(Year), y = sum, group = 1)) + 
+  geom_line() + geom_point() + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Change of Total Project Amount over Years") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+```
+
+## 3.2 Spatial Aspect
+```{r,warning=FALSE}
+county_level <- fema_new %>% filter(subregion!= "statewide")
+county_amount <- county_level %>% 
+  group_by(hurricane_id, region, subregion,hurr_name,date) %>% 
+  select(project_amount, federal_share) %>% 
+  summarise_each(funs(sum)) 
+```
+
+```{r}
+state_level <- fema_new %>% filter(subregion=="statewide")
+state_amount <- state_level %>% 
+  group_by(region) %>% 
+  select(project_amount) %>% 
+  summarise_each(funs(sum)) 
+```
+
+### 每个州fund总量的对比(分成三个小类)
+
+```{r}
+statesum <- PAFPD_0918 %>% group_by(state) %>% summarize(sum = sum(projectAmount),.groups='drop')
+```
+
+```{r}
+severe_state <- state_amount[rev(order(state_amount$sum))[1:10],]
+ggplot(data = severe_state, 
+       mapping = aes(x = state, y = sum, fill = state)) + 
+  geom_bar(stat = "identity") + 
+  guides(fill = F) + 
+  ylab("sum of projectAmount") + 
+  ggtitle("Barplot of the top 10 projectAmount in states") + 
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_flip()
+```
+
+### 每个州hurricane次数对比
+```{r}
+
+```
+
+## 3.3 Hurriance Aspect
+```{r}
+hurr_level <- fema_new %>%
+  group_by(hurr_name,region,date) %>%
+  select(project_amount, federal_share) %>% 
+  summarise_each(funs(sum)) 
+```
+### 每个台风带来损失的对比
+```{r}
+
+```
+
+### 每个台风波及的州的个数对比
+```{r}
+
+```
+
+## 3.4 project size aspect
+### 两种project size的次数与带来损失对比
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+## 3.5 Damage Category Aspect
+```{r}
+
+```
+
+# 4. Ploting the maps
+```{r}
+all <- map_data("county")
+a <- unique(all$region)
+b <- unique(fema_new$region)
+b[!(b %in% a)]
+```
+
+```{r}
+# add locations on fund dataframe
+harvey_map <- merge(all,HARVEY,by=c("region","subregion"))
+sandy_map <- merge(all,SANDY,by=c("region","subregion"))
+```
+
+### Make map plots of Hurricane Harvey's received federal funds by county
+```{r}
+harveyS <- c("texas","louisiana","arkansas","missouri","kentucky","tennessee","alabama","mississippi","florida","georgia","south carolina","north carolina")
+harveyStates <- map_data("county", harveyS)
+harveyPlot <- ggplot() + 
+  geom_polygon(data=harveyStates, aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=harvey, aes(x = long, y = lat, group = group, fill = federalShare/projectAmount))+
+  labs(fill="Federal Aid Amount (USD)") + 
+  ggtitle("Harvey-2017") +
+  theme(plot.title = element_text(hjust = 0.5))
+harveyPlot
+```
+
+### Make map plots of Hurricane Sandy's received federal funds by county
+```{r}
+sandyS <- c("virginia","west virginia","maryland","delaware","pennsylvania","new jersey","new york","connecticut","rhode island","massachusetts","vermont","new hampshire", "maine" )
+sandyStates <- map_data("county", sandyS)
+sandyPlot <- ggplot() + 
+  geom_polygon(data=sandyStates, aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=sandy, aes(x = long, y = lat, group = group, fill = federalShare/projectAmount), color = "transparent")+
+  labs(fill="Federal Aid Amount (USD)") + 
+  ggtitle("Sandy-2012") +
+  theme(plot.title = element_text(hjust = 0.5))
+sandyPlot
+```
+
+# 5. Shiny App
+
+# 6. Web-based Slides
+
+# 7. Conclusion & Future Work
+
+# 8. Acknowledgements $ References
+
+
+
