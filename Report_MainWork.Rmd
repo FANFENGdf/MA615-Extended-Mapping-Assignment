@@ -376,6 +376,7 @@ ggplot(data = dcc_count,
 
 # 4. Ploting the maps
 
+First, let’s check whether the dataset we used to make the maps contains all our regions in the fema dataset.
 ```{r}
 all <- map_data("county")
 a <- unique(all$region)
@@ -383,73 +384,83 @@ b <- unique(fema_new$region)
 b[!(b %in% a)]
 ```
 
-First, we load the data of longitude and latitude, and join them with our data
-```{r}
-MainStates <- map_data("state")
-AllCounty <- map_data("county")
-#make the letter of county lower
-hurr_num_map$county %<>% tolower()
-#combine the data set to get the longitude and latitude
-hurr_map <- left_join(hurr_num_map, AllCounty, by = c("county"="subregion"))
-```
+We notice that there are four regions not included in the map data.
 
-Then, we can use the nes data set to draw a map.
-```{r,fig.align='center'}
-ggplot() + 
-  #get the map of county
-  geom_polygon(data=AllCounty, aes(x=long, y=lat, group=group),
-               color="gray", fill="white", size = .1 ) + 
-  #add the data set we have
-  geom_polygon(data = hurr_map, aes(x = long, y = lat, group = group,fill = `hurricanes`), 
-               color = "grey", size = 0.2, alpha = 1.6) +
-  #display discrete values on a map
-  scale_fill_gradient(low="steelblue",high="blue")+
-  #add the state borders
-  geom_polygon(data=MainStates, aes(x=long, y=lat, group=group),color="black", fill="white",  
-               size = .5, alpha = .3) +
-  #change the name of x, y, and title
-  ggtitle("The Number of Hurricanes in Each County(1998-2020)") +
-  xlab("Longtitude")+ylab("Latitude")+labs(fill="Count")+
-  theme(plot.title = element_text(hjust = 0.5))
-```
-
+Then, we load the data of longitude and latitude, and join them with our data
 ```{r}
-# add locations on fund dataframe
-harvey_map <- merge(all,HARVEY,by=c("region","subregion"))
 sandy_map <- merge(all,SANDY,by=c("region","subregion"))
+irma_map <- merge(all,IRMA,by=c("region","subregion"))
+#maria_map <- merge(all,MARIA,by=c("region","subregion"))
+harvey_map <- merge(all,HARVEY,by=c("region","subregion"))
+michael_map <- merge(all,MICHAEL,by=c("region","subregion"))
 ```
 
-### Make map plots of Hurricane Harvey's received federal funds by county
+### Make map plots of the project amount of Hurricane Sandy
 ```{r}
-harveyS <- c("texas","louisiana","arkansas","missouri","kentucky","tennessee","alabama","mississippi","florida","georgia","south carolina","north carolina")
-harveyStates <- map_data("county", harveyS)
-harveyPlot <- ggplot() + 
-  geom_polygon(data=harveyStates, aes(x=long, y=lat, group=group),colour="black",fill="white")+
-  geom_polygon(data=harvey, aes(x = long, y = lat, group = group, fill = federalShare/projectAmount))+
-  labs(fill="Federal Aid Amount (USD)") + 
-  ggtitle("Harvey-2017") +
-  theme(plot.title = element_text(hjust = 0.5))
-harveyPlot
-```
-
-### Make map plots of Hurricane Sandy's received federal funds by county
-```{r}
-sandyS <- c("virginia","west virginia","maryland","delaware","pennsylvania","new jersey","new york","connecticut","rhode island","massachusetts","vermont","new hampshire", "maine" )
-sandyStates <- map_data("county", sandyS)
 sandyPlot <- ggplot() + 
-  geom_polygon(data=sandyStates, aes(x=long, y=lat, group=group),colour="black",fill="white")+
-  geom_polygon(data=sandy, aes(x = long, y = lat, group = group, fill = federalShare/projectAmount), color = "transparent")+
-  labs(fill="Federal Aid Amount (USD)") + 
-  ggtitle("Sandy-2012") +
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=sandy_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount (USD)") + 
+  ggtitle("Sandy") +
   theme(plot.title = element_text(hjust = 0.5))
 sandyPlot
 ```
 
+
+### Make map plots of the project amount of Hurricane IRMA
+```{r}
+irmaPlot <- ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=irma_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount") + 
+  ggtitle("IRMA") +
+  theme(plot.title = element_text(hjust = 0.5))
+irmaPlot
+```
+
+### Make map plots of the project amount of Hurricane Harvey
+```{r}
+harveyPlot <- ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=harvey_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount (USD)") + 
+  ggtitle("Harvey") +
+  theme(plot.title = element_text(hjust = 0.5))
+harveyPlot
+```
+
+### Make map plots of the project amount of Hurricane Michael
+```{r}
+michaelPlot <- ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=michael_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount (USD)") + 
+  ggtitle("Michael") +
+  theme(plot.title = element_text(hjust = 0.5))
+michaelPlot
+```
+
+
 # 5. Shiny App
 
-# 6. Web-based Slides
+[Click here go to shiny app](http://)
 
-# 7. Acknowledgements $ References
+# 6. Acknowledgements $ References
 
+The data is collected from: https://www.fema.gov/openfema-data-page/public-assistance-funded-projects-details-v1
+
+1. Yihui Xie (2020). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version 1.29. https://github.com/yihui/knitr
+
+2. Hadley Wickham (2019). tidyverse: Easily Install and Load the 'Tidyverse'. R package version 1.3.0. https://cloud.r-project.org/package=tidyverse
+
+3. Greg Freedman Ellis, Thomas Lumley, Tomasz Żółtak and Ben Schneider (2020). srvyr:'dplyr'-Like Syntax for Summary Statistics of SUrvey Data. R package version 0.4.0. https://cloud.r-project.org/package=srvyr
 
 
