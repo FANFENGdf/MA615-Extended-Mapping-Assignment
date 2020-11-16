@@ -5,13 +5,9 @@ date: "2020/11/11"
 output: pdf_document
 ---
 
-```{r global_options, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
                       echo=FALSE, warning=FALSE, message=FALSE)
-```
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load("tidyverse",
                "magrittr",
                "hurricaneexposuredata",
@@ -20,11 +16,14 @@ pacman::p_load("tidyverse",
                "lubridate",
                "kableExtra")
 ```
+
 # 1. Background 
 
 Main Task:
 
-Data Description:
+The purpose of this assignment is to make sure that you know the basics of using R to produce documents, presentations, and shiny apps. These are basic skills that every data scientists must have. Use the mapping project you have just completed as a starting point. I have provided additional county level data from FEMA and FEC so that you can produce maps with more features.
+
+Using this data, produce a document using rmarkdown, a presentation using revealjs, and a Shiny application that you publish on shinyapps.io. Your document should include structure elements such as headings, lists, tables. Your presentation should also include these elements. Your Shiny application should allow users to select of adjust the display of maps and data plots. All of these deliverables should contain maps and data plots. You don't need to go overboard. Do enough to demonstrate your skill.
 
 # 2. Data Cleaning
 
@@ -94,6 +93,7 @@ GITA <- fema %>% filter(hurricane_id == 4357) %>%
 fema_new <- do.call("rbind", list(IDA,EARL,ALEX,IRENE,SANDY,MATTHEW,
                                   HERMINE,HARVEY,NATE,IRMA,MARIA,MICHAEL,
                                   FLORENCE,LANE_hawaii,GITA))
+#write.csv(fema_new, "Shiny/shiny_data.csv")
 ```
 
 # 3. Exploratory Data Analysis
@@ -121,7 +121,7 @@ ggplot(year_count,
         plot.title = element_text(hjust = 0.5))
 ```
 
-```{r}
+```{r,echo=FALSE}
 ggplot(data = year_count,
        mapping = aes(x = as.factor(Year), y = n, group = 1)) + 
   geom_line() + geom_point() + 
@@ -133,14 +133,14 @@ ggplot(data = year_count,
 ```
 
 ### The Number of States Suffered From Hurricane Each Year
-```{r}
+```{r,echo=FALSE}
 year_state <- fema_new %>%
   mutate(Year = year(date)) %>%
   group_by(Year,region) %>%
   tally()
 ```
 
-```{r}
+```{r,echo=FALSE}
 ggplot(year_state) +
   geom_bar(aes(x = as.factor(Year),fill = as.factor(Year))) +
   scale_fill_hue(c = 40) +
@@ -152,7 +152,7 @@ ggplot(year_state) +
 ```
 
 ### The Total Project Amount Each Year
-```{r, include= FALSE}
+```{r, ,echo=FALSE}
 year_amount <- fema_new %>% 
   mutate(Year = year(date)) %>%
   group_by(Year) %>% 
@@ -162,7 +162,7 @@ severe_year = year_amount[rev(order(year_amount$sum))[1:5],]
 peace_year = year_amount[rev(order(year_amount$sum))[6:8],]
 ```
 
-```{r}
+```{r,echo=FALSE}
 ggplot(data = year_amount,
        mapping = aes(x = as.factor(Year), y = sum, 
                      fill = as.factor(Year))) + 
@@ -174,7 +174,7 @@ ggplot(data = year_amount,
         plot.title = element_text(hjust = 0.5)) 
 ```
 
-```{r}
+```{r,echo=FALSE}
 ggplot(data = severe_year,
        mapping = aes(x = as.factor(Year), y = sum, 
                      fill = as.factor(Year))) + 
@@ -186,7 +186,7 @@ ggplot(data = severe_year,
         plot.title = element_text(hjust = 0.5)) 
 ```
 
-```{r}
+```{r,echo=FALSE}
 ggplot(data = peace_year,
        mapping = aes(x = as.factor(Year), y = sum, 
                      fill = as.factor(Year))) + 
@@ -198,7 +198,7 @@ ggplot(data = peace_year,
         plot.title = element_text(hjust = 0.5)) 
 ```
 
-```{r}
+```{r,echo=FALSE}
 ggplot(data = year_amount,
        mapping = aes(x = as.factor(Year), y = sum, group = 1)) + 
   geom_line() + geom_point() + 
@@ -210,84 +210,207 @@ ggplot(data = year_amount,
 ```
 
 ## 3.2 Spatial Aspect
-```{r,warning=FALSE}
-county_level <- fema_new %>% filter(subregion!= "statewide")
-county_amount <- county_level %>% 
-  group_by(hurricane_id, region, subregion,hurr_name,date) %>% 
-  select(project_amount, federal_share) %>% 
-  summarise_each(funs(sum)) 
-```
 
-```{r}
+### The Total Project Amount Each State ALL These Years
+```{r,echo=FALSE}
 state_level <- fema_new %>% filter(subregion=="statewide")
 state_amount <- state_level %>% 
   group_by(region) %>% 
-  select(project_amount) %>% 
-  summarise_each(funs(sum)) 
+  summarize(sum = sum(project_amount),.groups='drop')
 ```
 
-### 每个州fund总量的对比(分成三个小类)
-
-```{r}
-statesum <- PAFPD_0918 %>% group_by(state) %>% summarize(sum = sum(projectAmount),.groups='drop')
-```
-
-```{r}
-severe_state <- state_amount[rev(order(state_amount$sum))[1:10],]
-ggplot(data = severe_state, 
-       mapping = aes(x = state, y = sum, fill = state)) + 
+```{r,echo=FALSE}
+ggplot(data = state_amount, 
+       aes(x = reorder(region,sum), y = sum, fill = region)) +
   geom_bar(stat = "identity") + 
-  guides(fill = F) + 
-  ylab("sum of projectAmount") + 
-  ggtitle("Barplot of the top 10 projectAmount in states") + 
-  theme(plot.title = element_text(hjust = 0.5))+
+  scale_fill_hue(c = 40) +
+  ylab("The Total Project Amount") + 
+  ggtitle("Total Project Amount Each State ALL These Years") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
   coord_flip()
 ```
 
-### 每个州hurricane次数对比
-```{r}
+```{r,echo=FALSE}
+severe_state <- state_amount[rev(order(state_amount$sum))[1:5],]
+ggplot(data = severe_state, 
+       aes(x = reorder(region,sum), y = sum, fill = region)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  ylab("The Total Project Amount") + 
+  ggtitle("Top 5 Total Project Amount Each State ALL These Years") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
+```
 
+### The Total Project Amount Each County ALL These Years
+```{r,warning=FALSE,echo=FALSE}
+county_level <- fema_new %>% filter(subregion!= "statewide")
+county_amount <- county_level %>% 
+  group_by(subregion) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+```
+
+```{r,echo=FALSE}
+ggplot(data = county_amount[rev(order(county_amount$sum))[1:5],], 
+       aes(x = reorder(subregion,sum), y = sum, fill = subregion)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  ylab("The Total Project Amount") + 
+  ggtitle("Top 10 Total Project Amount Each County ALL These Years") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
 ```
 
 ## 3.3 Hurriance Aspect
-```{r}
-hurr_level <- fema_new %>%
-  group_by(hurr_name,region,date) %>%
-  select(project_amount, federal_share) %>% 
-  summarise_each(funs(sum)) 
-```
-### 每个台风带来损失的对比
-```{r}
 
+### The Total Project Amount of Each Hurricane 
+```{r,warning=FALSE,echo=FALSE}
+hurr_level <- fema_new %>% filter(subregion != "statewide")
+hurr_amount <- hurr_level %>% 
+  group_by(hurr_name) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
 ```
 
-### 每个台风波及的州的个数对比
-```{r}
+```{r,echo=FALSE}
+ggplot(data = hurr_amount, 
+       aes(x = reorder(hurr_name,sum), y = sum, fill = hurr_name)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  ylab("The Total Project Amount") + 
+  ggtitle("The Total Project Amount of Each Hurricane") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
+```
 
+```{r,echo=FALSE}
+ggplot(data = hurr_amount[rev(order(hurr_amount$sum))[1:5],], 
+       aes(x = reorder(hurr_name,sum), y = sum, fill = hurr_name)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  ylab("The Total Project Amount") + 
+  ggtitle("Top 10 Total Project Amount of Each Hurricane") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
 ```
 
 ## 3.4 project size aspect
-### 两种project size的次数与带来损失对比
-```{r}
 
+We have two categories of project size: Large and Small.
+```{r}
+size_amount <- fema_new %>% 
+  group_by(project_size) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+
+size_count <- fema_new %>% 
+  group_by(project_size) %>% 
+  summarize(count = n(),.groups='drop')
 ```
 
-
+### The Total Project Amount for Each Project Size
 ```{r}
+ggplot(data = size_amount, 
+       aes(x = factor(project_size), y = sum, 
+           fill = factor(project_size))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Project Size") + 
+  ylab("Sum of Project Amount") + 
+  ggtitle("The Total Project Amount for Each Project Size") + 
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
+### The Frequencies for Each Project Size
+```{r}
+ggplot(data = size_count, 
+       aes(x = factor(project_size), y = count, 
+           fill = factor(project_size))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) + 
+  xlab("project size") + 
+  ylab("count of project size") + 
+  ggtitle("The Frequencies for Each Project Size") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ## 3.5 Damage Category Aspect
 ```{r}
+dcc_amount <- fema_new %>% 
+  group_by(damage_category) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
 
+dcc_count <- fema_new %>% 
+  group_by(damage_category) %>% 
+  summarize(count = n(),.groups='drop')
+```
+
+### Total Project Amount for Each Damage Category
+```{r}
+ggplot(data = dcc_amount, 
+       aes(x = reorder(damage_category,sum), y = sum, 
+           fill = as.factor(damage_category))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Damage Catrgory") + 
+  ylab("Total Project Amount") + 
+  ggtitle("Total Project Amount for Each Damage Category") + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  coord_flip()
+```
+
+### The Frequencies for Each Damage Category
+
+```{r}
+ggplot(data = dcc_count, 
+       aes(x = reorder(damage_category,count), y = count, 
+           fill = as.factor(damage_category))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Damage Catrgory") + 
+  ylab("Frequency") + 
+  ggtitle("The Frequencies for Each Damage Category") + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  coord_flip()
 ```
 
 # 4. Ploting the maps
+
 ```{r}
 all <- map_data("county")
 a <- unique(all$region)
 b <- unique(fema_new$region)
 b[!(b %in% a)]
+```
+
+First, we load the data of longitude and latitude, and join them with our data
+```{r}
+MainStates <- map_data("state")
+AllCounty <- map_data("county")
+#make the letter of county lower
+hurr_num_map$county %<>% tolower()
+#combine the data set to get the longitude and latitude
+hurr_map <- left_join(hurr_num_map, AllCounty, by = c("county"="subregion"))
+```
+
+Then, we can use the nes data set to draw a map.
+```{r,fig.align='center'}
+ggplot() + 
+  #get the map of county
+  geom_polygon(data=AllCounty, aes(x=long, y=lat, group=group),
+               color="gray", fill="white", size = .1 ) + 
+  #add the data set we have
+  geom_polygon(data = hurr_map, aes(x = long, y = lat, group = group,fill = `hurricanes`), 
+               color = "grey", size = 0.2, alpha = 1.6) +
+  #display discrete values on a map
+  scale_fill_gradient(low="steelblue",high="blue")+
+  #add the state borders
+  geom_polygon(data=MainStates, aes(x=long, y=lat, group=group),color="black", fill="white",  
+               size = .5, alpha = .3) +
+  #change the name of x, y, and title
+  ggtitle("The Number of Hurricanes in Each County(1998-2020)") +
+  xlab("Longtitude")+ylab("Latitude")+labs(fill="Count")+
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 ```{r}
@@ -326,9 +449,7 @@ sandyPlot
 
 # 6. Web-based Slides
 
-# 7. Conclusion & Future Work
-
-# 8. Acknowledgements $ References
+# 7. Acknowledgements $ References
 
 
 
