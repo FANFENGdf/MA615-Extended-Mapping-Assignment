@@ -4,7 +4,8 @@ author: "Fan Feng"
 date: 2020/11/12
 output: 
   revealjs::revealjs_presentation:
-  theme: seriftransition: slide
+  theme: serif
+  transition: slide
   self_contained: false
   reveal_plugins: ["menu"]
   center: false
@@ -36,9 +37,9 @@ In this assignment, we use the mapping project you have just completed as a star
 
 # Data Description
 
-The Public Assistance Funded Projects Details dataset contains obligated (financial obligation to grantee) Public Assistance projects, lists public assistance recipients designated as applicants in the data, and a list of every funded, individual project, called project worksheets. Open projects still under pre-obligation processing are not represented.
+The Public Assistance Funded Projects Details dataset contains obligated (financial obligation to grantee) Public Assistance projects.
 
-FEMA provides supplemental Federal disaster grant assistance for debris removal, emergency protective measures, and the repair, replacement, or restoration of disaster-damaged, publicly owned facilities and the facilities of certain Private Non-Profit (PNP) organizations through the PA Program (CDFA Number 97.036). The PA Program also encourages protection of these damaged facilities from future events by providing assistance for hazard mitigation measures during the recovery process.
+FEMA provides supplemental Federal disaster grant assistance for debris removal, emergency protective measures, and the repair, replacement, or restoration of disaster-damaged, publicly owned facilities and the facilities of certain Private Non-Profit (PNP) organizations through the PA Program. The PA Program also encourages protection of these damaged facilities from future events by providing assistance for hazard mitigation measures during the recovery process.
 
 ## Data Cleaning
 
@@ -48,46 +49,259 @@ FEMA provides supplemental Federal disaster grant assistance for debris removal,
 - Add the Names all the hurricanes
 - Remove the redundant columns 
 
+```{r, echo = FALSE}
+fema_new = read.csv("slides_data.csv")
+```
+
 # Exploratory Data Analysis
 
-- Temporal Aspect
-- Spatial Aspect
-- Hurricane Aspect
-- Project Size Aspect
-- Damage Category Aspect
+- 1.Temporal Aspect
+- 2.Spatial Aspect
+- 3.Hurricane Aspect
+- 4.Project Size Aspect
+- 5.Damage Category Aspect
 
-## Temporal Aspect
+## 1. Temporal Aspect
 
+### The number of major disaster declaration each year
 <div style="font-size:10pt; font-weight: bold">
 ```{r, echo = FALSE}
+year_count <- fema_new %>%
+  mutate(Year = year(date)) %>% 
+  group_by(Year) %>%
+  tally()
 
-grid.arrange(p1,p2,nrow=1)
+ggplot(year_count,
+       aes(x = as.factor(Year), y = n, fill = as.factor(Year))) +
+  geom_bar(stat = 'identity') +
+  scale_fill_hue(c = 40) +
+  ggtitle("The Number of Major Hurricane Delcaration Each Year") +
+  xlab("Year") + ylab("The Count of Delcaration") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5))
 ```
 </div>
 
-## Total Project Amount for Each Year
+## The Number of States Suffered From Hurricane Each Year
 
 <div style="font-size:10pt; font-weight: bold">
 ```{r, echo = FALSE}
-
-grid.arrange(p1,p2,p3,nrow=1)
+year_state <- fema_new %>%
+  mutate(Year = year(date)) %>%
+  group_by(Year,region) %>%
+  tally()
+ggplot(year_state) +
+  geom_bar(aes(x = as.factor(Year),fill = as.factor(Year))) +
+  scale_fill_hue(c = 40) +
+  ggtitle("The Number of States Suffered From Hurricane Each Year") +
+  xlab("Year") + ylab("The Count of States Suffered") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
 ```
 <div>
 
-## Total Project Amount for Different Project Size
-
+## The Total Project Amount Each Year
 <div style="font-size:10pt; font-weight: bold">
 ```{r, echo = FALSE}
+year_amount <- fema_new %>% 
+  mutate(Year = year(date)) %>%
+  group_by(Year) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+
+severe_year = year_amount[rev(order(year_amount$sum))[1:5],]
+peace_year = year_amount[rev(order(year_amount$sum))[6:8],]
+
+ggplot(data = year_amount,
+       mapping = aes(x = as.factor(Year), y = sum, 
+                     fill = as.factor(Year))) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Total Project Amount Each Year") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+```
+<div>
+
+## Severe Years & Peaceful Years
+<div style="font-size:10pt; font-weight: bold">
+```{r, echo = FALSE}
+p1 <- ggplot(data = severe_year,
+             mapping = aes(x = as.factor(Year), y = sum, 
+                           fill = as.factor(Year))) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Total Project Amount - Severe Years") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5)) 
+
+p2 <- ggplot(data = peace_year,
+             mapping = aes(x = as.factor(Year), y = sum, 
+                          fill = as.factor(Year))) + 
+  geom_bar(stat = 'identity') + 
+  scale_fill_hue(c = 40) +
+  ggtitle("The Total Project Amount - Relatively Peaceful Years") +
+  xlab("Year") + ylab("The Total Project Amount") +
+  theme(legend.position="none",
+        plot.title = element_text(hjust = 0.5))
 
 grid.arrange(p1,p2,nrow=1)
 ```
 <div>
 
-## Total Project Amount for Different Damage Categories
+## 2. Spatial Aspect
+
+### The Total Project Amount Each State ALL These Years
+<div style="font-size:10pt; font-weight: bold">
+```{r, echo = FALSE}
+state_level <- fema_new %>% filter(subregion=="statewide")
+state_amount <- state_level %>% 
+  group_by(region) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+
+ggplot(data = state_amount, 
+       aes(x = reorder(region,sum), y = sum, fill = region)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("State") +
+  ylab("The Total Project Amount") + 
+  ggtitle("Total Project Amount Each State ALL These Years") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
+```
+<div>
+
+## Top 5 States & Top 5 Counties
+<div style="font-size:10pt; font-weight: bold">
+```{r, echo = FALSE}
+severe_state <- state_amount[rev(order(state_amount$sum))[1:5],]
+p3 <- ggplot(data = severe_state, 
+             aes(x = reorder(region,sum), y = sum, fill = region)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("State") +
+  ylab("The Total Project Amount") + 
+  ggtitle("Top 5 States in Total Project Amount") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
+```
+<div>
+
+```{r,warning=FALSE,echo=FALSE}
+county_level <- fema_new %>% filter(subregion!= "statewide")
+county_amount <- county_level %>% 
+  group_by(subregion) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+```
+
+<div style="font-size:10pt; font-weight: bold">
+```{r,echo=FALSE}
+p4 <- ggplot(data = county_amount[rev(order(county_amount$sum))[1:5],], 
+             aes(x = reorder(subregion,sum), y = sum, fill = subregion)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("County") +
+  ylab("The Total Project Amount") + 
+  ggtitle("Top 5 County in Total Project Amount ") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
+grid.arrange(p3,p4,nrow=1)
+```
+<div>
+
+## 3. Hurriance Aspect
+
+### The Total Project Amount of Each Hurricane 
+<div style="font-size:10pt; font-weight: bold">
+```{r, echo = FALSE}
+hurr_level <- fema_new %>% filter(subregion != "statewide")
+hurr_amount <- hurr_level %>% 
+  group_by(hurr_name) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+
+ggplot(data = hurr_amount, 
+       aes(x = reorder(hurr_name,sum), y = sum, fill = hurr_name)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Hurricane Name") +
+  ylab("The Total Project Amount") + 
+  ggtitle("The Total Project Amount of Each Hurricane") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
+  coord_flip()
+```
+<div>
+
+## 4. Project Size Aspect
 
 <div style="font-size:10pt; font-weight: bold">
 ```{r, echo = FALSE}
+size_amount <- fema_new %>% 
+  group_by(project_size) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
 
+size_count <- fema_new %>% 
+  group_by(project_size) %>% 
+  summarize(count = n(),.groups='drop')
+
+p5<- ggplot(data = size_amount, 
+            aes(x = factor(project_size), y = sum, fill = factor(project_size))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Project Size") + 
+  ylab("Sum of Project Amount") + 
+  ggtitle("The Total Project Amount for Each Project Size") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")
+
+p6<-ggplot(data = size_count, 
+           aes(x = factor(project_size), y = count, 
+               fill = factor(project_size))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) + 
+  xlab("project size") + 
+  ylab("count of project size") + 
+  ggtitle("The Frequencies for Each Project Size") + 
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none") 
+grid.arrange(p5,p6,nrow=1)
+```
+<div>
+
+## 5. Damage Category Aspect
+
+<div style="font-size:10pt; font-weight: bold">
+```{r, echo = FALSE}
+dcc_amount <- fema_new %>% 
+  group_by(damage_category) %>% 
+  summarize(sum = sum(project_amount),.groups='drop')
+
+dcc_count <- fema_new %>% 
+  group_by(damage_category) %>% 
+  summarize(count = n(),.groups='drop')
+
+p7<- ggplot(data = dcc_amount, 
+            aes(x = reorder(damage_category,sum), y = sum, 
+                fill = as.factor(damage_category))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Damage Catrgory") + 
+  ylab("Total Project Amount") + 
+  ggtitle("Total Project Amount for Each Damage Category") + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  coord_flip()
+
+p8 <- ggplot(data = dcc_count, 
+             aes(x = reorder(damage_category,count), y = count, 
+                 fill = as.factor(damage_category))) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_hue(c = 40) +
+  xlab("Damage Catrgory") + 
+  ylab("Frequency") + 
+  ggtitle("The Frequencies for Each Damage Category") + 
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "none") +
+  coord_flip()
+grid.arrange(p7,p8,nrow=1)
 ```
 <div>
 
@@ -95,60 +309,76 @@ grid.arrange(p1,p2,nrow=1)
 
 1. Combine fema_new dataset with map data.
 
-2. Combine Maps Data with data we want to draw.
+2. Choose Top 4 destructive hurricanes to plot maps
 
 ## Maps of Hurricanes
-
 <div style="font-size:18pt">
-<p>We draw the total cost of every state in map.</p>  
-
+<p>We draw the total cost of most destructive hurricanes in map.</p>  
 ```{r echo=FALSE, message=FALSE}
-#combine the fips with maps data
-##county
-data(county.fips)
-mapcounty=st_as_sf(map('county',plot=F,fill=T))
-colnames(county.fips)[2]=colnames(mapcounty)[1]
-mapcounty=left_join(mapcounty,county.fips,'ID')
-##state
-data(state.fips)
-mapstate=st_as_sf(map('state',plot = F,fill = T))
-colnames(state.fips)[6]=colnames(mapstate)[1]
-mapstate=left_join(mapstate,state.fips,'ID')
-mapstate[20,2:6]<-c(25,22,1,1,"MA")
-mapstate[21,2:6]<-c(26,23,2,3,"MI")
-mapstate[31,2:6]<-c(36,33,1,2,"NY")
-mapstate[32,2:6]<-c(37,34,3,5,"NC")
-mapstate[45,2:6]<-c(51,49,3,5,"VA")
-mapstate[46,2:6]<-c(53,50,4,9,"WA")
-colnames(mapstate)[2] <- "stateNumberCode"
-mapstate$stateNumberCode<- as.numeric(mapstate$stateNumberCode)
-#combine data
-#by state
-hurricane_group<- group_by(PAFPD_0918, stateNumberCode)
-h_GroupByfips<- summarise(hurricane_group,sumcost = sum(projectAmount),.groups='drop')
-h_GroupByfips<- h_GroupByfips[order(h_GroupByfips$sumcost,decreasing=F),]
-hcount_s <- right_join(mapstate,h_GroupByfips,"stateNumberCode")
-#by county
-hurricane_group <- filter(PAFPD_0918,countyCode!=0)
-hurricane_group<- group_by(hurricane_group, fips)
-h_GroupByfips<- summarise(hurricane_group,sumcost = sum(projectAmount),.groups='drop')
-h_GroupByfips<- h_GroupByfips[order(h_GroupByfips$sumcost,decreasing=F),]
-hcount_c <- right_join(mapcounty,h_GroupByfips,"fips")
-hcount_c <- filter(hcount_c,is.na(ID)==F)
-hcount_c2 <- filter(hcount_c,sumcost<200000000)
-hcount_c3 <- filter(hcount_c,sumcost>200000000)
+
+all <- map_data("county")
+SANDY <- fema_new %>% filter(hurr_name == 'SANDY')
+IRMA <- fema_new %>% filter(hurr_name == 'IRMA')
+HARVEY <- fema_new %>% filter(hurr_name == 'HARVEY')
+MICHAEL <- fema_new %>% filter(hurr_name == 'MICHAEL')
+
+sandy_map <- merge(all,SANDY,by=c("region","subregion"))
+irma_map <- merge(all,IRMA,by=c("region","subregion"))
+#maria_map <- merge(all,MARIA,by=c("region","subregion"))
+harvey_map <- merge(all,HARVEY,by=c("region","subregion"))
+michael_map <- merge(all,MICHAEL,by=c("region","subregion"))
+```
+
+## Hurricane - SANDY
+```{r echo=FALSE, message=FALSE}
+ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=sandy_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount (USD)") + 
+  ggtitle("Sandy") +
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")
+```
+
+## Hurricane - IRMA
+```{r echo=FALSE, message=FALSE}
+ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=irma_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount") + 
+  ggtitle("IRMA") +
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")
+
+```
+
+## Hurricane - Harvey
+```{r echo=FALSE, message=FALSE}
+ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=harvey_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount (USD)") + 
+  ggtitle("Harvey") +
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")
+
 ```
 
 
-```{r, echo = FALSE}
-#leaflet
-#state
-img = readPNG("stateplot.png")
-grid.raster(img)
+## Hurricane - Michael
+```{r echo=FALSE, message=FALSE}
+ggplot() + 
+  geom_polygon(data=all, 
+               aes(x=long, y=lat, group=group),colour="black",fill="white")+
+  geom_polygon(data=michael_map, 
+               aes(x = long, y = lat, group = group, fill=project_amount))+
+  labs(fill="Project Amount (USD)") + 
+  ggtitle("Michael") +
+  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")
 ```
-
-  
-<p>As shown in the picture, hurricanes mainly influence the east coast. New York has the largest estimated total cost in 2009-2018.</p>  
 
 # References
 

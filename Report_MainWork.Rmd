@@ -7,7 +7,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
-                      echo=FALSE, warning=FALSE, message=FALSE)
+                      echo=TRUE, warning=FALSE, message=FALSE)
 pacman::p_load("tidyverse",
                "magrittr",
                "hurricaneexposuredata",
@@ -94,6 +94,7 @@ fema_new <- do.call("rbind", list(IDA,EARL,ALEX,IRENE,SANDY,MATTHEW,
                                   HERMINE,HARVEY,NATE,IRMA,MARIA,MICHAEL,
                                   FLORENCE,LANE_hawaii,GITA))
 #write.csv(fema_new, "Shiny/shiny_data.csv")
+#write.csv(fema_new,"slides_data.csv")
 ```
 
 # 3. Exploratory Data Analysis
@@ -224,6 +225,7 @@ ggplot(data = state_amount,
        aes(x = reorder(region,sum), y = sum, fill = region)) +
   geom_bar(stat = "identity") + 
   scale_fill_hue(c = 40) +
+  xlab("State")+
   ylab("The Total Project Amount") + 
   ggtitle("Total Project Amount Each State ALL These Years") + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
@@ -236,13 +238,14 @@ ggplot(data = severe_state,
        aes(x = reorder(region,sum), y = sum, fill = region)) +
   geom_bar(stat = "identity") + 
   scale_fill_hue(c = 40) +
+  xlab("State")+
   ylab("The Total Project Amount") + 
-  ggtitle("Top 5 Total Project Amount Each State ALL These Years") + 
+  ggtitle("Top 5 State in Total Project Amount") + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
   coord_flip()
 ```
 
-### The Total Project Amount Each County ALL These Years
+### The Top 5 County in Total Project Amount
 ```{r,warning=FALSE,echo=FALSE}
 county_level <- fema_new %>% filter(subregion!= "statewide")
 county_amount <- county_level %>% 
@@ -255,8 +258,9 @@ ggplot(data = county_amount[rev(order(county_amount$sum))[1:5],],
        aes(x = reorder(subregion,sum), y = sum, fill = subregion)) +
   geom_bar(stat = "identity") + 
   scale_fill_hue(c = 40) +
+  xlab("County") +
   ylab("The Total Project Amount") + 
-  ggtitle("Top 10 Total Project Amount Each County ALL These Years") + 
+  ggtitle("Top 5 County in Total Project Amount") + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
   coord_flip()
 ```
@@ -276,6 +280,7 @@ ggplot(data = hurr_amount,
        aes(x = reorder(hurr_name,sum), y = sum, fill = hurr_name)) +
   geom_bar(stat = "identity") + 
   scale_fill_hue(c = 40) +
+  xlab("Hurricane Name") +
   ylab("The Total Project Amount") + 
   ggtitle("The Total Project Amount of Each Hurricane") + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
@@ -287,8 +292,9 @@ ggplot(data = hurr_amount[rev(order(hurr_amount$sum))[1:5],],
        aes(x = reorder(hurr_name,sum), y = sum, fill = hurr_name)) +
   geom_bar(stat = "identity") + 
   scale_fill_hue(c = 40) +
+  xlab("Hurricane Name") +
   ylab("The Total Project Amount") + 
-  ggtitle("Top 10 Total Project Amount of Each Hurricane") + 
+  ggtitle("Top 5 Total Project Amount of Each Hurricane") + 
   theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
   coord_flip()
 ```
@@ -449,11 +455,7 @@ michaelPlot
 ```
 
 
-# 5. Shiny App
-
-[Click here go to shiny app](http://)
-
-# 6. Acknowledgements $ References
+# 5. Acknowledgements $ References
 
 The data is collected from: https://www.fema.gov/openfema-data-page/public-assistance-funded-projects-details-v1
 
