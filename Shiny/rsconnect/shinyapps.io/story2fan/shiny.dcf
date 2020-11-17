@@ -1,0 +1,10 @@
+name: shiny
+title:
+username:
+account: story2fan
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3249121
+bundleId: 3870893
+url: https://story2fan.shinyapps.io/shiny/
+when: 1605611712.33859
